@@ -277,7 +277,6 @@ func testDel(t *testing.T, d *Dict) {
 		{in: testDevice(0x5), out: true},
 	}
 	for _, tc := range tests {
-		t.Log(tc.in)
 		out := d.Del(tc.in)
 		require.Equal(t, tc.out, out, "FAIL: %v", tc.in)
 	}
