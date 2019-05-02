@@ -24,4 +24,4 @@
 package dict
 
 // Version is the version of this package.
-const Version = "0.0.1"
+const Version = "0.0.2"

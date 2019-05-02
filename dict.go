@@ -19,7 +19,7 @@ func (d *Dict) Version() int { return d.version }
 func (d *Dict) Len() int { return d.size }
 
 // New returns a new Dict object.
-// vargs can be any Go basic type, except uintptr, slices, and maps. The keys in a map are
+// vargs can be any Go basic type, slices, and maps. The keys in a map are
 // used as keys in the dict. The map keys must be hashable.
 func New(vargs ...interface{}) *Dict {
 	d := &Dict{values: make(map[uint64]interface{})}
