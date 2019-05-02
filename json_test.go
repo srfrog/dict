@@ -15,6 +15,7 @@ func TestDictMarshalJSON(t *testing.T) {
 		in  interface{}
 		out string
 	}{
+		{in: nil, out: `null`},
 		{in: int(1), out: `{"0":1}`},
 		{in: float64(2.2), out: `{"0":2.2}`},
 		{in: "2.2", out: `{"0":"2.2"}`},
@@ -51,9 +52,15 @@ func TestDictMarshalJSON_Embed(t *testing.T) {
 	require.JSONEq(t, j, string(b))
 }
 
+func TestDictMarshalJSONErr(t *testing.T) {
+	d := New().Set("x", func() {})
+	_, err := json.Marshal(d)
+	require.Error(t, err)
+}
+
 func TestDictUnmarshalJSON(t *testing.T) {
 	j := `{
-			"1": 1,
+			"1": true,
 			"2": "two",
 			"3": 3.30003,
 			"4a": ["horse","cow"],
@@ -61,6 +68,7 @@ func TestDictUnmarshalJSON(t *testing.T) {
 			"4c": [1.1, 2.2, 3.3],
 			"4d": [3, "something", 4.4],
 			"4e": [null, null, 0.0001, null],
+			"4f": [true, false, null],
 			"5": {"horse": "neighs", "cow": "moos", "dog": "woofs"},
 			"6": null
 		}`
@@ -71,7 +79,7 @@ func TestDictUnmarshalJSON(t *testing.T) {
 		in  string
 		out interface{}
 	}{
-		{in: "1", out: float64(1)},
+		{in: "1", out: true},
 		{in: "2", out: "two"},
 		{in: "3", out: float64(3.30003)},
 		{in: "4a", out: []string{"horse", "cow"}},
@@ -79,6 +87,7 @@ func TestDictUnmarshalJSON(t *testing.T) {
 		{in: "4c", out: []float64{1.1, 2.2, 3.3}},
 		{in: "4d", out: []interface{}{float64(3), "something", float64(4.4)}},
 		{in: "4e", out: []float64{0, 0, 0.0001, 0}},
+		{in: "4f", out: []bool{true, false, false}},
 		{in: "6", out: nil},
 	}
 	for _, tc := range tests {
@@ -92,4 +101,9 @@ func TestDictUnmarshalJSON(t *testing.T) {
 	require.EqualValues(t, "neighs", ed.Get("horse"))
 	require.EqualValues(t, "moos", ed.Get("cow"))
 	require.EqualValues(t, "woofs", ed.Get("dog"))
+}
+
+func TestDictUnmarshalJSONErr(t *testing.T) {
+	d := New()
+	require.Error(t, json.Unmarshal([]byte(nil), d))
 }
