@@ -2,7 +2,7 @@
 [![GoDoc](https://godoc.org/github.com/srfrog/dict?status.svg)](https://godoc.org/github.com/srfrog/dict)
 [![Go Report Card](https://goreportcard.com/badge/github.com/srfrog/dict?svg=1)](https://goreportcard.com/report/github.com/srfrog/dict)
 [![Coverage Status](https://coveralls.io/repos/github/srfrog/dict/badge.svg?branch=master)](https://coveralls.io/github/srfrog/dict?branch=master)
-[![Build Status](https://travis-ci.com/srfrog/dict.svg?branch=master)](https://travis-ci.com/srfrog/dict)
+![Build Status](https://github.com/srfrog/dict/actions/workflows/go.yml/badge.svg?branch=master)
 
 *Python dictionary data type (dict) in Go*
 
