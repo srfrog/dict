@@ -3,6 +3,11 @@
 
 package dict
 
+import (
+	"fmt"
+	"strings"
+)
+
 // Dict is a type that uses a hash mapping index, also known as a dictionary.
 type Dict struct {
 	size, version int
@@ -242,4 +247,12 @@ func (d *Dict) Update(vargs ...interface{}) bool {
 		}
 	}
 	return ver != d.Version()
+}
+
+func (d *Dict) String() string {
+	items := make([]string, 0, d.Len())
+	for item := range d.Items() {
+		items = append(items, fmt.Sprintf("%v: %#v", item.Key, item.Value))
+	}
+	return "{" + strings.Join(items, ", ") + "}"
 }
