@@ -36,6 +36,7 @@ func TestDict(t *testing.T) {
 		{"keys", testKeys},
 		{"values", testValues},
 		{"clear", testClear},
+		{"string", testPrint},
 	}
 	for _, tc := range tests {
 		if !t.Run(tc.name, wrapFn(tc.fn)) {
@@ -354,6 +355,23 @@ func testValues(t *testing.T, d *Dict) {
 	}
 	for _, tc := range tests {
 		out := tc.in.Values()
+		require.Equal(t, tc.out, out)
+	}
+}
+
+func testPrint(t *testing.T, d *Dict) {
+	tests := []struct {
+		in  *Dict
+		out string
+	}{
+		{in: New(), out: "{}"},
+		{in: New(nil), out: "{}"},
+		{in: New([]int{1, 2, 3}), out: "{0: 1, 1: 2, 2: 3}"},
+		{in: New(1, 2, 3), out: "{0: 1, 1: 2, 2: 3}"},
+		{in: New(1.1, 2.2, 3.3), out: "{0: 1.1, 1: 2.2, 2: 3.3}"},
+	}
+	for _, tc := range tests {
+		out := fmt.Sprintf("%v", tc.in)
 		require.Equal(t, tc.out, out)
 	}
 }
