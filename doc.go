@@ -1,4 +1,4 @@
-// Copyright (c) 2019 srfrog - https://srfrog.dev
+// Copyright (c) 2025 srfrog - https://srfrog.dev
 // Use of this source code is governed by the license in the LICENSE file.
 
 // Package dict is a Go implementation of Python dict, which are hashable object maps [1].
