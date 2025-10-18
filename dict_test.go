@@ -1,4 +1,4 @@
-// Copyright (c) 2019 srfrog - https://srfrog.me
+// Copyright (c) 2019 srfrog - https://srfrog.dev
 // Use of this source code is governed by the license in the LICENSE file.
 
 package dict
@@ -7,7 +7,10 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -26,7 +29,7 @@ func TestDict(t *testing.T) {
 		{"new chan", testNewChan},
 		{"set", testSet},
 		{"get", testGet},
-		{"update", testSetUpdate},
+		{"set update", testSetUpdate},
 		{"insert", testSetInsert},
 		{"set embed", testSetEmbed},
 		{"set chan", testSetChan},
@@ -37,6 +40,8 @@ func TestDict(t *testing.T) {
 		{"values", testValues},
 		{"clear", testClear},
 		{"string", testPrint},
+		{"update", testUpdate},
+		{"workers", testWorkers},
 	}
 	for _, tc := range tests {
 		if !t.Run(tc.name, wrapFn(tc.fn)) {
@@ -109,6 +114,7 @@ func testSet(t *testing.T, d *Dict) {
 	}{
 		{key: "5DFD011F-6123-4C4D-8BBF-9C26B4D1AD0F", value: testDevice(0x1)},
 		{key: "0E22688F-7E76-4F41-9351-243DD0824428", value: testDevice(0x2)},
+		{key: "B3FCB096-C0AF-42BB-9AFA-BBAA9CDA1CBC", value: "9872931"},
 		{key: "B3FCB096-C0AF-42BB-9AFA-BBAA9CDA1CBC", value: testDevice(0x3)},
 		{key: "F1A6671B-0E1D-4D80-9182-19667418F9C2", value: testDevice(0x4)},
 		{key: "5F0D34B3-24A5-4F76-BBC5-BF29E97C15AD", value: testDevice(0x5)},
@@ -116,6 +122,7 @@ func testSet(t *testing.T, d *Dict) {
 		{key: testDevice(0x2), value: "device 2"},
 		{key: testDevice(0x3), value: "device 3"},
 		{key: testDevice(0x4), value: "device 4"},
+		{key: testDevice(0x5), value: "some device 5"},
 		{key: testDevice(0x5), value: "device 5"},
 	}
 	for i := range data {
@@ -162,13 +169,13 @@ func testSetUpdate(t *testing.T, d *Dict) {
 		{in: Item{Key: testDevice(0x4), Value: "new device 4"}, out: "new device 4"},
 		{in: Item{Key: testDevice(0x5), Value: "new device 5"}, out: "new device 5"},
 	}
-	len := d.Len()
+	size := d.Len()
 	for _, tc := range tests {
 		dd := d.Set(tc.in.Key, tc.in.Value)
 		require.EqualValues(t, d, dd)
-		require.EqualValues(t, len, dd.size)
+		require.Equal(t, size, dd.Len())
 		out := d.Get(tc.in.Key)
-		require.EqualValues(t, tc.out, out)
+		require.Equal(t, tc.out, out)
 	}
 }
 
@@ -190,7 +197,7 @@ func testSetInsert(t *testing.T, d *Dict) {
 	for i := range data {
 		out := d.Set(data[i].key, data[i].value)
 		require.EqualValues(t, d, out)
-		require.False(t, out.size == len, "expected size > %d but got %d", len, out.size)
+		require.False(t, out.Len() == len, "expected size > %d but got %d", len, out.Len())
 	}
 	require.True(t, d.Len() == 15, "expected dict length to be 15 but got %d", d.Len())
 }
@@ -355,7 +362,7 @@ func testValues(t *testing.T, d *Dict) {
 	}
 	for _, tc := range tests {
 		out := tc.in.Values()
-		require.Equal(t, tc.out, out)
+		require.EqualValues(t, tc.out, out)
 	}
 }
 
@@ -374,4 +381,241 @@ func testPrint(t *testing.T, d *Dict) {
 		out := fmt.Sprintf("%v", tc.in)
 		require.Equal(t, tc.out, out)
 	}
+}
+
+func testUpdate(t *testing.T, d *Dict) {
+	tests := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{"Value slice", func(t *testing.T) {
+			values := []struct {
+				key, value interface{}
+			}{
+				{key: "testDevice11", value: "device 11"},
+				{key: "testDevice22", value: "device 22"},
+				{key: "testDevice33", value: "device 33"},
+				{key: "testDevice44", value: "device 44"},
+				{key: "testDevice55", value: "device 55"},
+			}
+			size, version := d.Len(), d.Version()
+			ok := d.Update(values)
+			require.True(t, ok)
+			require.True(t, size != d.Len(), "expected size == %d but got %d", size, d.Len())
+			require.True(t, version != d.Version(), "expected version == %d but got %d", version, d.Version())
+		}},
+		{"Item slice", func(t *testing.T) {
+			values := []Item{
+				{Key: testDevice(0x1), Value: "device 1"},
+				{Key: testDevice(0x2), Value: "device 2"},
+				{Key: testDevice(0x3), Value: "device 3"},
+				{Key: testDevice(0x4), Value: "device 4"},
+				{Key: testDevice(0x5), Value: "device 5"},
+			}
+			size, version := d.Len(), d.Version()
+			ok := d.Update(values)
+			require.True(t, ok)
+			require.True(t, size != d.Len(), "expected size == %d but got %d", size, d.Len())
+			require.True(t, version != d.Version(), "expected version == %d but got %d", version, d.Version())
+		}},
+		{"Value map", func(t *testing.T) {
+			values := map[testDevice]interface{}{
+				testDevice(0x1): "update device 1",
+				testDevice(0x2): "update device 2",
+				testDevice(0x3): "update device 3",
+				testDevice(0x4): "update device 4",
+				testDevice(0x5): "update device 5",
+			}
+			size, version := d.Len(), d.Version()
+			ok := d.Update(values)
+			require.True(t, ok)
+			require.True(t, size == d.Len(), "expected size == %d but got %d", size, d.Len())
+			require.True(t, version != d.Version(), "expected version == %d but got %d", version, d.Version())
+		}},
+		{"Value channel", func(t *testing.T) {
+			values := []Item{
+				{Key: testDevice(0x1), Value: "device 1"},
+				{Key: testDevice(0x2), Value: "device 2"},
+				{Key: testDevice(0x3), Value: "device 3"},
+				{Key: testDevice(0x4), Value: "device 4"},
+				{Key: testDevice(0x5), Value: "device 5"},
+			}
+
+			ci := make(chan Item)
+			go func() {
+				defer close(ci)
+				for i := range values {
+					ci <- values[i]
+				}
+			}()
+
+			size, version := d.Len(), d.Version()
+			ok := d.Update(ci)
+
+			require.True(t, ok)
+			require.True(t, size == d.Len(), "expected size == %d but got %d", size, d.Len())
+			require.True(t, version != d.Version(), "expected version == %d but got %d", version, d.Version())
+		}},
+	}
+	for _, tc := range tests {
+		if !t.Run(tc.name, tc.fn) {
+			break
+		}
+	}
+}
+
+func testWorkers(t *testing.T, d *Dict) {
+	var wg sync.WaitGroup
+
+	d.Clear()
+
+	numWorkers := 7
+	numItems := 100
+
+	ch := make(chan Item)
+
+	wg.Add(numWorkers)
+	for i := 0; i < numWorkers; i++ {
+		go func() {
+			defer wg.Done()
+			for item := range ch {
+				d.Set(item.Key, item.Value)
+			}
+		}()
+	}
+
+	for i := 0; i < numItems; i++ {
+		key := fmt.Sprintf("key%d", i)
+		value := fmt.Sprintf("value%d", i)
+		ch <- Item{key, value}
+	}
+	close(ch)
+	wg.Wait()
+
+	require.True(t, d.Len() == numItems, "expected size = %d, but got %d instead", numItems, d.Len())
+	require.True(t, d.Version() > 0, "expected non-zero version, got %d", d.Version())
+	v := d.Get("key99")
+	require.NotNil(t, v)
+	require.Equal(t, v, "value99")
+}
+
+func TestPopDoesNotDeadlock(t *testing.T) {
+	d := New()
+	d.Set("deadlock", "sentinel")
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_ = d.Pop("deadlock")
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("Pop should complete but appears to be blocked")
+	}
+}
+
+func TestPopItemShrinksLength(t *testing.T) {
+	d := New(1, 2)
+	require.Equal(t, 2, d.Len())
+
+	item := d.PopItem()
+	require.NotNil(t, item)
+	require.Equal(t, 1, d.Len(), "PopItem should reduce the reported length")
+}
+
+func TestPopItemAfterLastElement(t *testing.T) {
+	d := New()
+	d.Set("only", "value")
+
+	require.NotPanics(t, func() {
+		out := d.PopItem()
+		require.NotNil(t, out)
+	})
+
+	require.Zero(t, d.Len(), "Len should be zero after removing the last element")
+
+	require.NotPanics(t, func() {
+		require.Nil(t, d.PopItem(), "PopItem on an empty dict should return nil")
+	})
+}
+
+func TestDelNoPanicWhenKeysSliceShrinks(t *testing.T) {
+	d := New()
+	d.Set("key", "value")
+
+	d.mu.Lock()
+	id := d.keys[0]
+	d.keys = d.keys[:0]
+	d.mu.Unlock()
+
+	require.NotNil(t, id)
+
+	require.NotPanics(t, func() {
+		require.False(t, d.Del("key"))
+	})
+}
+
+func TestItemsSnapshotSurvivesClear(t *testing.T) {
+	d := New(1, 2, 3)
+	ch := d.Items()
+	d.Clear()
+
+	var got []Item
+	for item := range ch {
+		got = append(got, item)
+	}
+
+	require.Len(t, got, 3, "Items should emit the snapshot taken before Clear")
+}
+
+func TestNilDictSafety(t *testing.T) {
+	require.NotPanics(t, func() {
+		var d *Dict
+		require.True(t, d.IsEmpty())       // still treated as empty
+		require.Nil(t, d.Get("missing"))   // read operations stay harmless
+		require.False(t, d.Del("missing")) // write-style helpers no-op
+	})
+}
+
+func TestPopItemConcurrentDoesNotPanic(t *testing.T) {
+	d := New()
+	d.Set("entry", 1)
+
+	var wg sync.WaitGroup
+	panicCh := make(chan interface{}, 2)
+	start := make(chan struct{})
+
+	worker := func() {
+		defer wg.Done()
+		defer func() {
+			if r := recover(); r != nil {
+				panicCh <- r
+			}
+		}()
+		<-start
+		_ = d.PopItem()
+	}
+
+	wg.Add(2)
+	go worker()
+	go worker()
+
+	close(start)
+	wg.Wait()
+	close(panicCh)
+
+	for p := range panicCh {
+		require.Failf(t, "unexpected panic", "%v", p)
+	}
+}
+
+func TestPopItemDoesNotPanicWithStaleSize(t *testing.T) {
+	d := New()
+	atomic.StoreInt64(&d.size, 1)
+
+	require.NotPanics(t, func() {
+		require.Nil(t, d.PopItem())
+	})
 }
