@@ -1,4 +1,4 @@
-// Copyright (c) 2019 srfrog - https://srfrog.me
+// Copyright (c) 2025 srfrog - https://srfrog.dev
 // Use of this source code is governed by the license in the LICENSE file.
 
 package dict
@@ -82,6 +82,14 @@ type Item struct {
 func toIterable(i interface{}) <-chan Item {
 	ci := make(chan Item)
 
+	// If the value is an Item, just return it.
+	transform := func(ii interface{}) Item {
+		if v, ok := ii.(Item); ok {
+			return v
+		}
+		return Item{Value: ii}
+	}
+
 	go func() {
 		defer close(ci)
 
@@ -112,16 +120,16 @@ func toIterable(i interface{}) <-chan Item {
 				if !ok {
 					break L
 				}
-				ci <- Item{Value: x.Interface()}
+				ci <- transform(x.Interface())
 			}
 
 		case reflect.Array, reflect.Slice:
 			for j := 0; j < v.Len(); j++ {
-				ci <- Item{Key: j, Value: v.Index(j).Interface()}
+				ci <- transform(v.Index(j).Interface())
 			}
 
 		default:
-			ci <- Item{Value: v.Interface()}
+			ci <- transform(v.Interface())
 		}
 	}()
 

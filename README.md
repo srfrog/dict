@@ -29,10 +29,10 @@ View [example_test.go][2] for an extended example of basic usage and features.
 - [x] Go types int, uint, float, string and fmt.Stringer are hashable for dict keys.
 - [x] Go map keys are used for dict keys if they are hashable.
 - [x] Dict items are sorted in their insertion order, unlike Go maps.
-- [ ] Go routine safe with minimal mutex locking (WIP)
+- [x] Go routine safe with minimal mutex locking (WIP)
 - [x] Builtin JSON support for marshalling and unmarshalling
 - [ ] sql.Scanner support via optional sub-package (WIP)
-- [ ] Plenty of tests and examples to get you started quickly (WIP)
+- [x] Plenty of tests and examples to get you started quickly
 
 ## Documentation
 

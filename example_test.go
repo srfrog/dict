@@ -1,4 +1,4 @@
-// Copyright (c) 2019 srfrog - https://srfrog.me
+// Copyright (c) 2025 srfrog - https://srfrog.dev
 // Use of this source code is governed by the license in the LICENSE file.
 
 package dict_test
@@ -108,17 +108,17 @@ func ExampleDict_Update() {
 	// Map of cars, indexed by VIN.
 	// Data source: NHTSA.gov
 	vins := map[string]*Car{
-		"2C3KA43R08H129584": &Car{
+		"2C3KA43R08H129584": {
 			Model:   "2008 CHRYSLER 300",
 			Recalls: 3,
 			BrandID: "ACB9976A-DB5F-4D57-B9A8-9F5C53D87C7C",
 		},
-		"1N6AD07U78C416152": &Car{
+		"1N6AD07U78C416152": {
 			Model:   "2008 NISSAN FRONTIER SE-V6 RWD",
 			Recalls: 0,
 			BrandID: "003096EE-C8FC-4C2F-ADEF-406F86C1F70B",
 		},
-		"WDDGF8AB8EA940372": &Car{
+		"WDDGF8AB8EA940372": {
 			Model:   "2014 Mercedes-Benz C300W4",
 			Recalls: 2,
 			BrandID: "57B7B707-4357-4306-9FD6-1EDCA43CF77B",
